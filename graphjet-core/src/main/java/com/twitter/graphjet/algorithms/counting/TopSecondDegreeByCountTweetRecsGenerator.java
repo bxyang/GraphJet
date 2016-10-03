@@ -37,6 +37,7 @@ import it.unimi.dsi.fastutil.longs.LongList;
 
 public final class TopSecondDegreeByCountTweetRecsGenerator {
   private static final int MIN_USER_SOCIAL_PROOF_SIZE = 1;
+  private static final int MAX_TWEET_RESULTS = 1000;
 
   private TopSecondDegreeByCountTweetRecsGenerator() {
   }
@@ -120,7 +121,8 @@ public final class TopSecondDegreeByCountTweetRecsGenerator {
     List<NodeInfo> nodeInfoList
   ) {
     int maxNumResults = request.getMaxNumResultsByType().containsKey(RecommendationType.TWEET)
-      ? request.getMaxNumResultsByType().get(RecommendationType.TWEET) : Integer.MAX_VALUE;
+      ? Math.min(request.getMaxNumResultsByType().get(RecommendationType.TWEET), MAX_TWEET_RESULTS)
+      : MAX_TWEET_RESULTS;
 
     PriorityQueue<NodeInfo> topResults = new PriorityQueue<NodeInfo>(maxNumResults);
 
