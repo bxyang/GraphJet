@@ -27,6 +27,7 @@ import com.google.common.collect.Lists;
 
 import com.twitter.graphjet.algorithms.NodeInfo;
 import com.twitter.graphjet.algorithms.RecommendationInfo;
+import com.twitter.graphjet.algorithms.RecommendationRequest;
 import com.twitter.graphjet.algorithms.RecommendationType;
 import com.twitter.graphjet.algorithms.TweetIDMask;
 import com.twitter.graphjet.algorithms.TweetRecommendationInfo;
@@ -37,7 +38,6 @@ import it.unimi.dsi.fastutil.longs.LongList;
 
 public final class TopSecondDegreeByCountTweetRecsGenerator {
   private static final int MIN_USER_SOCIAL_PROOF_SIZE = 1;
-  private static final int MAX_TWEET_RESULTS = 1000;
 
   private TopSecondDegreeByCountTweetRecsGenerator() {
   }
@@ -121,8 +121,9 @@ public final class TopSecondDegreeByCountTweetRecsGenerator {
     List<NodeInfo> nodeInfoList
   ) {
     int maxNumResults = request.getMaxNumResultsByType().containsKey(RecommendationType.TWEET)
-      ? Math.min(request.getMaxNumResultsByType().get(RecommendationType.TWEET), MAX_TWEET_RESULTS)
-      : MAX_TWEET_RESULTS;
+      ? Math.min(request.getMaxNumResultsByType().get(RecommendationType.TWEET),
+                 RecommendationRequest.MAX_RECOMMENDATION_RESULTS)
+      : RecommendationRequest.MAX_RECOMMENDATION_RESULTS;
 
     PriorityQueue<NodeInfo> topResults = new PriorityQueue<NodeInfo>(maxNumResults);
 
