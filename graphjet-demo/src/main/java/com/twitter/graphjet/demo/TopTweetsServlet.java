@@ -1,10 +1,32 @@
+<<<<<<< HEAD
+=======
+/**
+ * Copyright 2016 Twitter. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+>>>>>>> 759a0dd7defd1938773b5d5f2fd2232a7d77c159
 package com.twitter.graphjet.demo;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.twitter.graphjet.bipartite.MultiSegmentPowerLawBipartiteGraph;
 import it.unimi.dsi.fastutil.longs.LongIterator;
+<<<<<<< HEAD
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+=======
+>>>>>>> 759a0dd7defd1938773b5d5f2fd2232a7d77c159
 import it.unimi.dsi.fastutil.longs.LongSet;
 import org.eclipse.jetty.http.HttpStatus;
 
@@ -22,6 +44,7 @@ import java.util.PriorityQueue;
  * bipartite graph.
  */
 public class TopTweetsServlet extends HttpServlet {
+<<<<<<< HEAD
   private static final Joiner JOINER = Joiner.on(",\n");
   private final MultiSegmentPowerLawBipartiteGraph bigraph;
   private final LongSet tweets;
@@ -29,6 +52,18 @@ public class TopTweetsServlet extends HttpServlet {
   public TopTweetsServlet(MultiSegmentPowerLawBipartiteGraph bigraph, LongOpenHashSet tweets) {
     this.bigraph = bigraph;
     this.tweets = tweets;
+=======
+  public enum GraphType {USER_TWEET, TWEET_HASHTAG}
+  private static final Joiner JOINER = Joiner.on(",\n");
+  private final MultiSegmentPowerLawBipartiteGraph bigraph;
+  private final LongSet tweets;
+  private final GraphType graphType;
+
+  public TopTweetsServlet(MultiSegmentPowerLawBipartiteGraph bigraph, LongSet tweets, GraphType graphType) {
+    this.bigraph = bigraph;
+    this.tweets = tweets;
+    this.graphType = graphType;
+>>>>>>> 759a0dd7defd1938773b5d5f2fd2232a7d77c159
   }
 
   @Override
@@ -48,7 +83,11 @@ public class TopTweetsServlet extends HttpServlet {
     LongIterator iter = tweets.iterator();
     while (iter.hasNext()) {
       long tweet = iter.nextLong();
+<<<<<<< HEAD
       int cnt = bigraph.getRightNodeDegree(tweet);
+=======
+      int cnt = graphType.equals(GraphType.USER_TWEET) ? bigraph.getRightNodeDegree(tweet) : bigraph.getLeftNodeDegree(tweet);
+>>>>>>> 759a0dd7defd1938773b5d5f2fd2232a7d77c159
       if (cnt == 1) continue;
 
       if (queue.size() < k) {

@@ -30,7 +30,10 @@ import org.slf4j.LoggerFactory;
 
 import com.twitter.graphjet.algorithms.NodeInfo;
 import com.twitter.graphjet.algorithms.RecommendationInfo;
+<<<<<<< HEAD
 import com.twitter.graphjet.algorithms.RecommendationRequest;
+=======
+>>>>>>> 759a0dd7defd1938773b5d5f2fd2232a7d77c159
 import com.twitter.graphjet.algorithms.TweetIDMask;
 import com.twitter.graphjet.algorithms.TweetRecommendationInfo;
 import com.twitter.graphjet.bipartite.api.LeftIndexedBipartiteGraph;
@@ -63,9 +66,14 @@ public class SalsaSelectResults<T extends LeftIndexedBipartiteGraph> {
    * Picks the top-k visited nodes in SALSA.
    */
   public SalsaResponse pickTopNodes() {
+<<<<<<< HEAD
     int maxNumResults = Math.min(salsaInternalState.getSalsaRequest().getMaxNumResults(),
       RecommendationRequest.MAX_RECOMMENDATION_RESULTS);
     PriorityQueue<NodeInfo> topResults = new PriorityQueue<NodeInfo>(maxNumResults);
+=======
+    PriorityQueue<NodeInfo> topResults = new PriorityQueue<NodeInfo>(
+        salsaInternalState.getSalsaRequest().getMaxNumResults());
+>>>>>>> 759a0dd7defd1938773b5d5f2fd2232a7d77c159
 
     int numFilteredNodes = 0;
     for (NodeInfo nodeInfo : salsaInternalState.getVisitedRightNodes().values()) {
@@ -78,7 +86,11 @@ public class SalsaSelectResults<T extends LeftIndexedBipartiteGraph> {
       }
       nodeInfo.setWeight(
           nodeInfo.getWeight() / salsaInternalState.getSalsaStats().getNumRHSVisits());
+<<<<<<< HEAD
       addResultToPriorityQueue(topResults, nodeInfo, maxNumResults);
+=======
+      addResultToPriorityQueue(topResults, nodeInfo);
+>>>>>>> 759a0dd7defd1938773b5d5f2fd2232a7d77c159
     }
 
     List<RecommendationInfo> outputResults =
@@ -150,9 +162,14 @@ public class SalsaSelectResults<T extends LeftIndexedBipartiteGraph> {
 
   private void addResultToPriorityQueue(
       PriorityQueue<NodeInfo> topResults,
+<<<<<<< HEAD
       NodeInfo nodeInfo,
       int maxNumResults) {
     if (topResults.size() < maxNumResults) {
+=======
+      NodeInfo nodeInfo) {
+    if (topResults.size() < salsaInternalState.getSalsaRequest().getMaxNumResults()) {
+>>>>>>> 759a0dd7defd1938773b5d5f2fd2232a7d77c159
       topResults.add(nodeInfo);
     } else if (nodeInfo.getWeight() > topResults.peek().getWeight()) {
       topResults.poll();

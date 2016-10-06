@@ -24,7 +24,10 @@ import java.util.Random;
 
 import com.google.common.collect.Lists;
 
+<<<<<<< HEAD
 import com.twitter.graphjet.algorithms.RecommendationRequest;
+=======
+>>>>>>> 759a0dd7defd1938773b5d5f2fd2232a7d77c159
 import com.twitter.graphjet.algorithms.SimilarityAlgorithm;
 import com.twitter.graphjet.algorithms.SimilarityInfo;
 import com.twitter.graphjet.algorithms.SimilarityResponse;
@@ -154,11 +157,16 @@ public class IntersectionSimilarity implements
       }
     }
     // finally, normalize and select top neighbors
+<<<<<<< HEAD
     int maxNumResults = Math.min(
       request.getMaxNumResults(),
       RecommendationRequest.MAX_RECOMMENDATION_RESULTS
     );
     PriorityQueue<SimilarityInfo> topResults = new PriorityQueue<SimilarityInfo>(maxNumResults);
+=======
+    PriorityQueue<SimilarityInfo> topResults = new PriorityQueue<SimilarityInfo>(
+        request.getMaxNumResults());
+>>>>>>> 759a0dd7defd1938773b5d5f2fd2232a7d77c159
     for (long similarNode : nodeToWeightedCooccurenceCountsMap.keySet()) {
       double cooccurrence = nodeToWeightedCooccurenceCountsMap.get(similarNode);
       int rawCooccurrence = nodeToCooccurrenceCountsMap.get(similarNode);
@@ -171,7 +179,11 @@ public class IntersectionSimilarity implements
           cooccurrence, similarNodeDegree, queryNodeDegree);
       normWeight = Double.isInfinite(normWeight) ? 0 : normWeight;
       double score = cooccurrence * normWeight;
+<<<<<<< HEAD
       if (topResults.size() < maxNumResults) {
+=======
+      if (topResults.size() < request.getMaxNumResults()) {
+>>>>>>> 759a0dd7defd1938773b5d5f2fd2232a7d77c159
         topResults.add(new SimilarityInfo(similarNode, score, rawCooccurrence, similarNodeDegree));
       } else if (score > topResults.peek().getWeight()) {
         topResults.poll();
