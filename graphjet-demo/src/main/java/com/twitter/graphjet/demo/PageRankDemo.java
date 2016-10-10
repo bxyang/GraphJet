@@ -22,24 +22,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
-/**
- *
- * Reads in a multi-line adjacency list from multiple files in a directory, where ids are of type T.
- * Does not check for duplicate edges or nodes.
- *
- *  In each file, a node and its neighbors is defined by the first line being that
- * node's id and its # of neighbors, followed by that number of ids on subsequent lines.
- * For example, when ids are Ints,
- *    241 3
- *    2
- *    4
- *    1
- *    53 1
- *    241
- *    ...
- * In this file, node 241 has 3 neighbors, namely 2, 4 and 1. Node 53 has 1 neighbor, 241.
- *
- */
 public class PageRankDemo {
   private static class TwitterStreamReaderArgs {
     @Option(name = "-inputFile", metaVar = "[value]", usage = "maximum number of segments", required = true)
@@ -61,14 +43,6 @@ public class PageRankDemo {
     float leftPowerLawExponent = 2.0f;
   }
 
-  public static boolean insertVertice(LongOpenHashSet ids, long id) {
-    if (!ids.contains(id)) {
-      ids.add(id);
-      return true;
-    }
-    return false;
-  }
-
   public static void main(String[] argv) throws Exception {
     final TwitterStreamReaderArgs args = new TwitterStreamReaderArgs();
     CmdLineParser parser = new CmdLineParser(args, ParserProperties.defaults().withUsageWidth(90));
@@ -83,23 +57,20 @@ public class PageRankDemo {
     
     String graphPath = args.inputFile;
 
-    OutIndexedPowerLawMultiSegmentDirectedGraph bigraph =  new OutIndexedPowerLawMultiSegmentDirectedGraph(args.maxSegments, args.maxEdgesPerSegment,
+    OutIndexedPowerLawMultiSegmentDirectedGraph bigraph =
+        new OutIndexedPowerLawMultiSegmentDirectedGraph(args.maxSegments, args.maxEdgesPerSegment,
             args.leftSize, args.leftDegree, args.leftPowerLawExponent,
             new IdentityEdgeTypeMask(),
             new NullStatsReceiver());
 
-    LongOpenHashSet vertices = new LongOpenHashSet();
+    final LongOpenHashSet vertices = new LongOpenHashSet();   // Note, *not* thread safe.
+    final AtomicLong fileEdgeCounter = new AtomicLong();
+    final AtomicLong maxVertexId = new AtomicLong();
 
-    final AtomicLong max = new AtomicLong();
+    System.out.println("Loading graph from file...");
+    long loadStart = System.currentTimeMillis();
 
-    long start = System.currentTimeMillis();
-
-    final AtomicInteger edgeCounter = new AtomicInteger();
     Files.walk(Paths.get(graphPath)).forEach(filePath -> {
-      final AtomicInteger from = new AtomicInteger();
-      final AtomicInteger to = new AtomicInteger();
-      final AtomicInteger counter = new AtomicInteger();
-
       if (Files.isRegularFile(filePath)) {
         try {
           InputStream inputStream = Files.newInputStream(filePath);
@@ -107,58 +78,76 @@ public class PageRankDemo {
           BufferedReader br = new BufferedReader(new InputStreamReader(gzip));
           String line;
           while((line = br.readLine()) != null) {
-            if (line.startsWith("#") || line.startsWith("twitter_rv.net")) continue;
+            if (line.startsWith("#")) continue;
+
             String[] tokens = line.split("\\s+");
-//System.out.println(tokens[0] + " : " + tokens[1]);
-            int cur;
             if (tokens.length > 1) {
-              // new vertex
-              cur = Integer.parseInt(tokens[0]);
-              from.set(cur);
-              to.set(Integer.parseInt(tokens[1]));
-              bigraph.addEdge(from.get(), to.get(), (byte) 1);
-              edgeCounter.incrementAndGet();
-              if (insertVertice(vertices, cur)) {
-                if (max.get() < cur) {
-                   max.set(cur);
+              final long from = Long.parseLong(tokens[0]);
+              final long to = Long.parseLong(tokens[1]);
+              bigraph.addEdge(from, to, (byte) 1);
+              fileEdgeCounter.incrementAndGet();
+
+              // Print logging output every 10 million edges.
+              if (fileEdgeCounter.get() % 10000000 == 0 ) {
+                System.out.println(String.format("%d million edges read, elapsed time %.2f seconds",
+                    fileEdgeCounter.get()/1000000, (System.currentTimeMillis() - loadStart)/1000.0));
+              }
+
+              // Note, LongOpenHashSet not thread safe so we need to synchronize manually
+              synchronized(vertices) {
+                if (!vertices.contains(from)) {
+                  vertices.add(from);
+                }
+                if (!vertices.contains(to)) {
+                  vertices.add(to);
                 }
               }
-              if (insertVertice(vertices, to.get())) {
-                if (max.get() < to.get()) {
-                  max.set(to.get());
-                }
-              } 
+
+              maxVertexId.getAndUpdate(x -> Math.max(x, from));
+              maxVertexId.getAndUpdate(x -> Math.max(x, to));
             }
           }
         } catch (Exception e) {
-          e.printStackTrace();	  
+          // Catch all exceptions and quit.
+          e.printStackTrace();
+          System.exit(-1);
         }
       }
     });
 
-    long numRuns = 10;
-    long total = 0L;
-    for (int i = 0; i < numRuns; ++i) {
-      long loadedTime = System.currentTimeMillis();
-      System.out.println("Running page rank.. # of vertices: " + vertices.size());
+    long loadEnd = System.currentTimeMillis();
+    System.out.println(String.format("Read %d vertices, %d edges loaded in %d ms",
+        vertices.size(), fileEdgeCounter.get(), (loadEnd-loadStart)));
+    System.out.println(String.format("Average: %.0f edges per second",
+        fileEdgeCounter.get()/((float) (loadEnd-loadStart))*1000));
 
-      PageRank pr = new PageRank(bigraph, vertices, max.get(), 0.85, 1e-15);
+    System.out.println("Verifying loaded graph...");
+    AtomicLong graphEdgeCounter = new AtomicLong();
+    vertices.forEach(v -> {
+      graphEdgeCounter.addAndGet(bigraph.getOutDegree(v));
+    });
+    if (fileEdgeCounter.get() == graphEdgeCounter.get()) {
+      System.out.println("Edge count: " + fileEdgeCounter.get());
+    } else {
+      System.err.println(String.format("Error, edge counts don't match! Expected: %d, Actual: %d",
+          fileEdgeCounter.get(), graphEdgeCounter.get()));
+      System.exit(-1);
+    }
+    System.out.println("Count of graph edges verified!");
+
+    long numRuns = 10;
+    long total = 0;
+    for (int i = 0; i < numRuns; ++i) {
+      long startTime = System.currentTimeMillis();
+      System.out.print("Trial " + i + ": Running PageRank for 10 iterations... ");
+
+      PageRank pr = new PageRank(bigraph, vertices, maxVertexId.get(), 0.85, 1e-15);
       double pagerank[] = pr.run(10);
       long endTime = System.currentTimeMillis();
 
-      AtomicInteger constructedGraphEdgeCounter = new AtomicInteger();
-      vertices.forEach(v -> {
-        constructedGraphEdgeCounter.addAndGet(bigraph.getOutDegree(v));
-        //System.out.println(v + " " + pagerank[(int)(long) v]);
-      });
-      if (edgeCounter.get() == constructedGraphEdgeCounter.get()) {
-        System.out.println("Edge count " + edgeCounter.get());
-      } else {
-        System.err.println("Some of edges are dropped. Expected: " + edgeCounter.get() + " actual: " + constructedGraphEdgeCounter.get());
-      }
-      total += (endTime-loadedTime);
-      System.out.println("PageRank took: " + (endTime-loadedTime) + " milliseconds ");
+      System.out.println("Complete! Elapsed time = " + (endTime-startTime) + " ms");
+      total += endTime-startTime;
     }
-    System.out.println("Average : " + (total / numRuns) + " milliseconds ");
+    System.out.println("Averaged over " + numRuns + " trials: " + total/numRuns + " ms");
   }
 }
